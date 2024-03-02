@@ -36,12 +36,15 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.particle.ParticleType;
 import net.minecraft.predicate.entity.EntityPredicate;
+import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextCodecs;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Util;
 
 public class Serializer {
 	public static final Gson GSON;
@@ -72,7 +75,7 @@ public class Serializer {
 				.setExclusionStrategies(new ExcludeStrategy())
 
 				.registerTypeHierarchyAdapter(NbtElement.class, new NbtElementAdapter().nullSafe())
-				.registerTypeHierarchyAdapter(Text.class, basic(Text.Serialization::fromJsonTree, Text.Serialization::toJsonTree))
+				.registerTypeHierarchyAdapter(Text.class, basic(jsonElement -> Text.Serialization.fromJsonTree(jsonElement, DynamicRegistryManager.EMPTY), mutableText -> Util.getResult(TextCodecs.CODEC.encodeStart(DynamicRegistryManager.EMPTY.getOps(JsonOps.INSTANCE), mutableText), JsonParseException::new)))
 
 				.registerTypeAdapter(ClickCallback.class, delegate(BasicAction.class, ClickCallback.class::cast, BasicAction.class::cast))
 				.registerTypeAdapter(ItemStack.class, delegate(ItemStackish.class, ItemStackish::toStack, ItemStackish::new))

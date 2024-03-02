@@ -1,37 +1,23 @@
 package megaminds.actioninventory.misc;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
 import megaminds.actioninventory.serialization.wrappers.Validated;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.*;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.attribute.EntityAttribute;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributeModifier.Operation;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.item.ItemStack.TooltipSection;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtEnd;
 import net.minecraft.nbt.NbtHelper;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
 import net.minecraft.registry.Registries;
-import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ItemStackish {
 	public static final ItemStackish MATCH_ALL = new ItemStackish() {
@@ -51,16 +37,15 @@ public class ItemStackish {
 	private Integer damage; 
 	private Optional<NbtCompound> customNbt;
 	private Optional<Text> customName;	//displayMatches
-	private Text[] lore;	//displayMatches
+	private List<Text> lore;	//displayMatches
 	private Optional<Integer> color;//color in display
 	private Map<Enchantment, Integer> enchantments;	//enchantmentsMatch
-	private Set<TooltipSection> hideFlags;	//displayMatches
 	private Set<AttributeValues> attributes;	//attributesMatch
 
 	public ItemStackish() {}
 
 	@SuppressWarnings("java:S107")
-	public ItemStackish(Item item, Integer count, Integer damage, Optional<NbtCompound> customNbt, Optional<Text> customName, Text[] lore, Optional<Integer> color, Map<Enchantment, Integer> enchantments, Set<TooltipSection> hideFlags, Set<AttributeValues> attributes) {
+	public ItemStackish(Item item, Integer count, Integer damage, Optional<NbtCompound> customNbt, Optional<Text> customName, List<Text> lore, Optional<Integer> color, Map<Enchantment, Integer> enchantments, Set<AttributeValues> attributes) {
 		this.item = item;
 		this.count = count;
 		this.damage = damage;
@@ -69,7 +54,6 @@ public class ItemStackish {
 		this.lore = lore;
 		this.color = color;
 		this.enchantments = enchantments;
-		this.hideFlags = hideFlags;
 		this.attributes = attributes;
 	}
 
@@ -79,20 +63,24 @@ public class ItemStackish {
 		item = i.getItem();
 		count = i.getCount();
 		damage = i.getDamage();
-		setNbtDefaults();
-		if (i.hasNbt()) {
-			NbtCompound nbt = i.getNbt().copy();
-			customNbt = Optional.of(nbt);
-			//All of the found values are removed from the NbtCompound so only custom info stays. ** The ItemStack itself should NOT be modified. **
-			if (nbt.contains(ItemStack.DISPLAY_KEY)) {
-				NbtCompound display = nbt.getCompound(ItemStack.DISPLAY_KEY);
-				nameFrom(display);
-				loreFrom(display);
-				colorFrom(display);
-			}
-			enchantments = EnchantmentHelper.get(i);
-			flagsFrom(nbt);
-			attributesFrom(nbt);
+		setComponentDefaults();
+		customName = Optional.ofNullable(i.get(DataComponentTypes.CUSTOM_NAME));
+		if (i.contains(DataComponentTypes.LORE)) {
+			lore = i.get(DataComponentTypes.LORE).lines();
+		}
+		color = Optional.ofNullable(i.get(DataComponentTypes.DYED_COLOR)).map(DyedColorComponent::rgb);
+		EnchantmentHelper.getEnchantments(i).getEnchantmentsMap().forEach(registryEntryEntry -> {
+			enchantments.put(registryEntryEntry.getKey().value(), registryEntryEntry.getIntValue());
+		});
+		if (i.contains(DataComponentTypes.ATTRIBUTE_MODIFIERS)) {
+			attributes = i.get(DataComponentTypes.ATTRIBUTE_MODIFIERS).modifiers().stream()
+				.map(entry -> new AttributeValues(
+					entry.attribute().value(),
+					entry.modifier().getOperation(),
+					entry.modifier().getValue(),
+					"modifier",
+					entry.modifier().getId(), entry.slot())
+				).collect(Collectors.toSet());
 		}
 	}
 
@@ -100,116 +88,34 @@ public class ItemStackish {
 	public ItemStack toStack() {
 		ItemStack s = new ItemStack(Objects.requireNonNullElse(item, Items.AIR));
 		if (customNbt!=null) {
-			if (customNbt.isEmpty()) {
-				s.setNbt(null);
-			} else {
-				s.setNbt(new NbtCompound());
-				s.getNbt().copyFrom(customNbt.orElseThrow());
-			}
-		}
+            customNbt.ifPresent(nbtCompound -> s.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound)));
+        }
 		if (count!=null) s.setCount(count);
 		if (damage!=null) s.setDamage(damage);
-		if (customName!=null) s.setCustomName(customName.orElse(null));
-		if (lore!=null) addLore(s);
-		if (color!=null) addColor(s);
-		if (enchantments!=null) EnchantmentHelper.set(enchantments, s);
-		if (hideFlags!=null) hideFlags.forEach(s::addHideFlag);
+        if (customName != null) customName.ifPresent(text -> s.set(DataComponentTypes.CUSTOM_NAME, text));
+		if (lore!=null) s.set(DataComponentTypes.LORE, new LoreComponent(lore));
+		if (color != null) color.ifPresent(rgb -> s.set(DataComponentTypes.DYED_COLOR, new DyedColorComponent(rgb, true)));
+		if (enchantments != null) {
+			ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
+			enchantments.forEach(builder::set);
+			EnchantmentHelper.set(s, builder.build());
+		}
 		if (attributes!=null) attributes.forEach(a->a.apply(s));
 		return s;
 	}
 
-	public void setNbtDefaults() {
+	public void setComponentDefaults() {
 		customNbt = Optional.empty();
 		color = Optional.empty();
 		customName = Optional.empty();
-		lore = new Text[0];
-		enchantments = Map.of();
-		hideFlags = EnumSet.noneOf(TooltipSection.class);
+		lore = Collections.emptyList();
 		attributes = Set.of();
 	}
 
-	private void nameFrom(NbtCompound display) {
-		if (display.contains(ItemStack.NAME_KEY)) {
-			customName = Optional.of(Text.Serialization.fromJson(display.getString(ItemStack.NAME_KEY)));
-			display.remove(ItemStack.NAME_KEY);
-		}
-	}
-
-	private void colorFrom(NbtCompound display) {
-		if (display.contains(ItemStack.COLOR_KEY)) {
-			color = Optional.of(display.getInt(ItemStack.COLOR_KEY));
-			display.remove(ItemStack.COLOR_KEY);
-		}
-	}
-
-	private void flagsFrom(NbtCompound nbt) {
-		if (nbt.contains(HIDE_FLAG_KEY)) {
-			final int flags = nbt.getInt(HIDE_FLAG_KEY);
-			hideFlags = EnumSet.allOf(TooltipSection.class);
-			hideFlags.removeIf(s -> (flags&s.getFlag()) != 0);
-			nbt.remove(HIDE_FLAG_KEY);
-		}
-	}
-
-	private void attributesFrom(NbtCompound nbt) {
-		if (nbt.contains(ATTRIBUTE_KEY)) {
-			attributes = nbt.getList(ATTRIBUTE_KEY, NbtElement.COMPOUND_TYPE).stream()
-					.map(NbtCompound.class::cast)
-					.map(AttributeValues::new)
-					.collect(HashSet::new, Set::add, Set::addAll);
-			nbt.remove(ATTRIBUTE_KEY);
-		}
-	}
-
-	private void loreFrom(NbtCompound display) {
-		if (display.contains(ItemStack.LORE_KEY)) {
-			lore = display.getList(ItemStack.LORE_KEY, NbtElement.STRING_TYPE).stream()
-					.map(l->l==null||l==NbtEnd.INSTANCE?"":l.asString())
-					.map(Text.Serialization::fromJson)
-					.toArray(Text[]::new);
-			display.remove(ItemStack.LORE_KEY);
-		}
-	}
-
-	public static List<MutableText> loreFrom(ItemStack stack) {
-		var display = stack.getSubNbt(ItemStack.DISPLAY_KEY);
-		if (display !=null && display.contains(ItemStack.LORE_KEY)) {
-			return display.getList(ItemStack.LORE_KEY, NbtElement.STRING_TYPE).stream()
-					.map(l->l==null||l==NbtEnd.INSTANCE?"":l.asString())
-					.map(Text.Serialization::fromJson)
-					.toList();
-		}
-		return Collections.emptyList();
-	}
-
 	private void addLore(ItemStack s) {
-		NbtList list = Arrays.stream(lore)
-				.map(l->l!=null?l:Text.empty())
-				.map(Text.Serialization::toJsonString)
-				.map(NbtString::of)
-				.collect(NbtList::new, NbtList::add, NbtList::addAll);
-		s.getOrCreateSubNbt(ItemStack.DISPLAY_KEY).put(ItemStack.LORE_KEY, list);
+		s.set(DataComponentTypes.LORE, new LoreComponent(lore));
 	}
 
-	public static void setLore(ItemStack stack, List<Text> lore) {
-		var list = lore.stream()
-				.map(l->l!=null?l:Text.empty())
-				.map(Text.Serialization::toJsonString)
-				.map(NbtString::of)
-				.collect(NbtList::new, NbtList::add, NbtList::addAll);
-		stack.getOrCreateSubNbt(ItemStack.DISPLAY_KEY).put(ItemStack.LORE_KEY, list);
-	}
-
-	private void addColor(ItemStack s) {
-		NbtCompound el;
-		if ((el=s.getNbt())!=null && el.contains(ItemStack.DISPLAY_KEY)) {
-			if (color.isEmpty()) {
-				el.getCompound(ItemStack.DISPLAY_KEY).remove(ItemStack.COLOR_KEY);
-			} else {
-				el.putInt(ItemStack.DISPLAY_KEY, color.get());
-			}
-		}
-	}
 
 	/**
 	 * Checks contained elements for equality.<br>
@@ -229,7 +135,6 @@ public class ItemStackish {
 				&& (lore==null || i.lore!=null&&loreEquals(i.lore))
 				&& nullOrEquals(enchantments, i.enchantments)
 				&& (customNbt==null || i.customNbt!=null&&NbtHelper.matches(customNbt.orElse(null), i.customNbt.orElse(null), true))	//NOSONAR Minecraft uses this other places so I think this is fine.
-				&& nullOrEquals(hideFlags, i.hideFlags)
 				&& nullOrEquals(attributes, i.attributes);
 	}
 
@@ -246,10 +151,10 @@ public class ItemStackish {
 				t1!=null && t2!=null && t1.getString().equals(t2.getString());
 	}
 
-	private boolean loreEquals(Text[] lore2) {
-		int l = lore.length;
+	private boolean loreEquals(List<Text> lore2) {
+		int l = lore.size();
 		for (int i=0; i<l; i++) {
-			if (!textEqual(lore[i], lore2[i])) return false;
+			if (!textEqual(lore.get(i), lore2.get(i))) return false;
 		}
 		return true;
 	}
@@ -294,11 +199,11 @@ public class ItemStackish {
 		this.customName = customName;
 	}
 
-	public Text[] getLore() {
+	public List<Text> getLore() {
 		return lore;
 	}
 
-	public void setLore(Text[] lore) {
+	public void setLore(List<Text> lore) {
 		this.lore = lore;
 	}
 
@@ -318,14 +223,6 @@ public class ItemStackish {
 		this.enchantments = enchantments;
 	}
 
-	public Set<TooltipSection> getHideFlags() {
-		return hideFlags;
-	}
-
-	public void setHideFlags(Set<TooltipSection> hideFlags) {
-		this.hideFlags = hideFlags;
-	}
-
 	public Set<AttributeValues> getAttributes() {
 		return attributes;
 	}
@@ -340,11 +237,11 @@ public class ItemStackish {
 		private double value;
 		private String name;
 		private UUID uuid;
-		private EquipmentSlot slot;
+		private AttributeModifierSlot slot;
 
 		public AttributeValues() {}
 
-		public AttributeValues(EntityAttribute attribute, Operation operation, double value, String name, UUID uuid, EquipmentSlot slot) {
+		public AttributeValues(EntityAttribute attribute, Operation operation, double value, String name, UUID uuid, AttributeModifierSlot slot) {
 			this.attribute = attribute;
 			this.operation = operation;
 			this.value = value;
@@ -360,19 +257,14 @@ public class ItemStackish {
 			Validated.validate(operation!=null, "Attribute modifiers need operation to be non-null");
 		}
 
-		public AttributeValues(NbtCompound c) {
-			EntityAttributeModifier mod = EntityAttributeModifier.fromNbt(c);
-			attribute = Registries.ATTRIBUTE.get(new Identifier(c.getString("AttributeName")));
-			operation = mod.getOperation();
-			value = mod.getValue();
-			name = c.getString("Name");
-			uuid = mod.getId();
-			slot = EquipmentSlot.valueOf(c.getString("Slot"));			
-		}
-
 		public void apply(ItemStack stack) {
 			EntityAttributeModifier mod = uuid==null ? new EntityAttributeModifier(name, value, operation) : new EntityAttributeModifier(uuid, name, value, operation);
-			stack.addAttributeModifier(attribute, mod, slot);
+			// TODO 1.20.5
+			stack.apply(DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT, component -> {
+				List<AttributeModifiersComponent.Entry> modifiers = new LinkedList<>(component.modifiers());
+				modifiers.add(new AttributeModifiersComponent.Entry(Registries.ATTRIBUTE.getEntry(attribute), mod, slot));
+				return new AttributeModifiersComponent(modifiers, false);
+			});
 		}
 
 		public EntityAttribute getAttribute() {
@@ -415,11 +307,11 @@ public class ItemStackish {
 			this.uuid = uuid;
 		}
 
-		public EquipmentSlot getSlot() {
+		public AttributeModifierSlot getSlot() {
 			return slot;
 		}
 
-		public void setSlot(EquipmentSlot slot) {
+		public void setSlot(AttributeModifierSlot slot) {
 			this.slot = slot;
 		}
 

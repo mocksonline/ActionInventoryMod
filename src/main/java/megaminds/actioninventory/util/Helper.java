@@ -17,6 +17,10 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import eu.pb4.placeholders.api.Placeholders;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.LoreComponent;
+import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,11 +45,19 @@ public class Helper {
 	 * Parses nbt of the item stack. The same stack is returned with the changes.
 	 */
 	public static ItemStack parseItemStack(ItemStack stack, PlaceholderContext context) {
-		if (stack.hasNbt()) {
-			NbtPlaceholderParser.replaceCompound(context, stack.getNbt());
-			stack.getItem().postProcessNbt(stack.getNbt());
-		}
-
+		stack.apply(DataComponentTypes.CUSTOM_NAME, null, name -> {
+			if (name != null) {
+				return Placeholders.parseText(name, context);
+			}
+			return null;
+		});
+		stack.apply(DataComponentTypes.LORE, null, loreComponent -> {
+			if (loreComponent != null) {
+				List<Text> parsedLore = loreComponent.lines().stream().map(lore -> Placeholders.parseText(lore, context)).toList();
+				return new LoreComponent(parsedLore);
+			}
+			return null;
+		});
 		return stack;
 	}
 
