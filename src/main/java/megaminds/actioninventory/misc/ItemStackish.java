@@ -76,10 +76,10 @@ public class ItemStackish {
 			attributes = i.get(DataComponentTypes.ATTRIBUTE_MODIFIERS).modifiers().stream()
 				.map(entry -> new AttributeValues(
 					entry.attribute().value(),
-					entry.modifier().getOperation(),
-					entry.modifier().getValue(),
+					entry.modifier().operation(),
+					entry.modifier().value(),
 					"modifier",
-					entry.modifier().getId(), entry.slot())
+					entry.modifier().uuid(), entry.slot())
 				).collect(Collectors.toSet());
 		}
 	}

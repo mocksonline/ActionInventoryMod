@@ -3,7 +3,10 @@ package megaminds.actioninventory.actions;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
+import net.minecraft.loot.LootTable;
+import net.minecraft.registry.RegistryKeys;
 import org.jetbrains.annotations.NotNull;
 
 import eu.pb4.placeholders.api.PlaceholderContext;
@@ -58,7 +61,7 @@ public final class GiveAction extends BasicAction {
 				.build(LootContextTypes.ADVANCEMENT_REWARD);
 
 		Arrays.stream(lootTables)
-		.map(id->p.server.getLootManager().getLootTable(id).generateLoot(lootContext))
+		.map(id-> Optional.ofNullable(p.server.getRegistryManager().get(RegistryKeys.LOOT_TABLE).get(id)).orElse(LootTable.EMPTY).generateLoot(lootContext))
 		.<ItemStack>mapMulti(List::forEach)
 		.filter(Objects::nonNull)
 		.map(s->Helper.parseItemStack(s, PlaceholderContext.of(p)))
