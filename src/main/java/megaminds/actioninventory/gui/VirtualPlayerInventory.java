@@ -2,6 +2,7 @@ package megaminds.actioninventory.gui;
 
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.SimpleGui;
+import net.minecraft.class_9701;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
@@ -63,7 +64,7 @@ public class VirtualPlayerInventory extends SimpleGui {
 		@Override
 		public boolean canTakeItems(PlayerEntity playerEntity) {
 			ItemStack itemStack = this.getStack();
-			if (!itemStack.isEmpty() && !playerEntity.isCreative() && EnchantmentHelper.hasBindingCurse(itemStack)) {
+			if (!itemStack.isEmpty() && !playerEntity.isCreative() && EnchantmentHelper.method_60142(itemStack, class_9701.PREVENT_ARMOR_CHANGE)) {
 				return false;
 			}
 			return super.canTakeItems(playerEntity);

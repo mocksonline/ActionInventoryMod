@@ -14,6 +14,7 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.text.Text;
 
 import java.util.*;
@@ -39,13 +40,13 @@ public class ItemStackish {
 	private Optional<Text> customName;	//displayMatches
 	private List<Text> lore;	//displayMatches
 	private Optional<Integer> color;//color in display
-	private Map<Enchantment, Integer> enchantments;	//enchantmentsMatch
+	private Map<RegistryEntry<Enchantment>, Integer> enchantments;	//enchantmentsMatch
 	private Set<AttributeValues> attributes;	//attributesMatch
 
 	public ItemStackish() {}
 
 	@SuppressWarnings("java:S107")
-	public ItemStackish(Item item, Integer count, Integer damage, Optional<NbtCompound> customNbt, Optional<Text> customName, List<Text> lore, Optional<Integer> color, Map<Enchantment, Integer> enchantments, Set<AttributeValues> attributes) {
+	public ItemStackish(Item item, Integer count, Integer damage, Optional<NbtCompound> customNbt, Optional<Text> customName, List<Text> lore, Optional<Integer> color, Map<RegistryEntry<Enchantment>, Integer> enchantments, Set<AttributeValues> attributes) {
 		this.item = item;
 		this.count = count;
 		this.damage = damage;
@@ -69,9 +70,7 @@ public class ItemStackish {
 			lore = i.get(DataComponentTypes.LORE).lines();
 		}
 		color = Optional.ofNullable(i.get(DataComponentTypes.DYED_COLOR)).map(DyedColorComponent::rgb);
-		EnchantmentHelper.getEnchantments(i).getEnchantmentsMap().forEach(registryEntryEntry -> {
-			enchantments.put(registryEntryEntry.getKey().value(), registryEntryEntry.getIntValue());
-		});
+		EnchantmentHelper.getEnchantments(i).getEnchantmentsMap().forEach(enchantment -> enchantments.put(enchantment.getKey(), enchantment.getIntValue()));
 		if (i.contains(DataComponentTypes.ATTRIBUTE_MODIFIERS)) {
 			attributes = i.get(DataComponentTypes.ATTRIBUTE_MODIFIERS).modifiers().stream()
 				.map(entry -> new AttributeValues(
@@ -97,7 +96,7 @@ public class ItemStackish {
 		if (color != null) color.ifPresent(rgb -> s.set(DataComponentTypes.DYED_COLOR, new DyedColorComponent(rgb, true)));
 		if (enchantments != null) {
 			ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
-			enchantments.forEach(builder::set);
+			enchantments.forEach(builder::add);
 			EnchantmentHelper.set(s, builder.build());
 		}
 		if (attributes!=null) attributes.forEach(a->a.apply(s));
@@ -215,11 +214,11 @@ public class ItemStackish {
 		this.color = color;
 	}
 
-	public Map<Enchantment, Integer> getEnchantments() {
+	public Map<RegistryEntry<Enchantment>, Integer> getEnchantments() {
 		return enchantments;
 	}
 
-	public void setEnchantments(Map<Enchantment, Integer> enchantments) {
+	public void setEnchantments(Map<RegistryEntry<Enchantment>, Integer> enchantments) {
 		this.enchantments = enchantments;
 	}
 
