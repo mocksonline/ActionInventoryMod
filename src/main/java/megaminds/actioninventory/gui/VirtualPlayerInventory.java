@@ -2,10 +2,9 @@ package megaminds.actioninventory.gui;
 
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.SimpleGui;
-import net.minecraft.class_9701;
+import net.minecraft.component.EnchantmentEffectComponentTypes;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
@@ -49,7 +48,8 @@ public class VirtualPlayerInventory extends SimpleGui {
 		private EquipmentSlot equipmentSlot;
 		ArmorSlot(Inventory inv, int index, int armorIndex) {
 			super(inv, index, 0, 0);
-			this.equipmentSlot = EquipmentSlot.fromTypeIndex(EquipmentSlot.Type.ARMOR, 3-armorIndex);
+			// TODO 1.21
+//			this.equipmentSlot = EquipmentSlot.fromTypeIndex(EquipmentSlot.Type.ARMOR, 3-armorIndex);
 		}
 		@Override
 		public int getMaxItemCount() {
@@ -58,13 +58,15 @@ public class VirtualPlayerInventory extends SimpleGui {
 
 		@Override
 		public boolean canInsert(ItemStack stack) {
-			return equipmentSlot == LivingEntity.getPreferredEquipmentSlot(stack);
+			// TODO 1.21
+//			return equipmentSlot == LivingEntity.getPreferredEquipmentSlot(stack);
+			return true;
 		}
 
 		@Override
 		public boolean canTakeItems(PlayerEntity playerEntity) {
 			ItemStack itemStack = this.getStack();
-			if (!itemStack.isEmpty() && !playerEntity.isCreative() && EnchantmentHelper.method_60142(itemStack, class_9701.PREVENT_ARMOR_CHANGE)) {
+			if (!itemStack.isEmpty() && !playerEntity.isCreative() && EnchantmentHelper.hasAnyEnchantmentsWith(itemStack, EnchantmentEffectComponentTypes.PREVENT_ARMOR_CHANGE)) {
 				return false;
 			}
 			return super.canTakeItems(playerEntity);

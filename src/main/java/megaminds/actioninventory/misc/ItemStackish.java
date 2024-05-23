@@ -16,6 +16,7 @@ import net.minecraft.nbt.NbtHelper;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -77,8 +78,8 @@ public class ItemStackish {
 					entry.attribute().value(),
 					entry.modifier().operation(),
 					entry.modifier().value(),
-					"modifier",
-					entry.modifier().uuid(), entry.slot())
+					entry.modifier().uuid(),
+					entry.slot())
 				).collect(Collectors.toSet());
 		}
 	}
@@ -234,30 +235,28 @@ public class ItemStackish {
 		private EntityAttribute attribute;
 		private Operation operation;
 		private double value;
-		private String name;
-		private UUID uuid;
+		private Identifier identifier;
 		private AttributeModifierSlot slot;
 
 		public AttributeValues() {}
 
-		public AttributeValues(EntityAttribute attribute, Operation operation, double value, String name, UUID uuid, AttributeModifierSlot slot) {
+		public AttributeValues(EntityAttribute attribute, Operation operation, double value, Identifier identifier, AttributeModifierSlot slot) {
 			this.attribute = attribute;
 			this.operation = operation;
 			this.value = value;
-			this.name = name;
-			this.uuid = uuid;
+			this.identifier = identifier;
 			this.slot = slot;
 		}
 
 		@Override
 		public void validate() {
 			Validated.validate(attribute!=null, "Attribute modifiers need attribute to be non-null");
-			Validated.validate(name!=null, "Attribute modifiers need name to be non-null");
+			Validated.validate(identifier!=null, "Attribute modifiers need identifier to be non-null");
 			Validated.validate(operation!=null, "Attribute modifiers need operation to be non-null");
 		}
 
 		public void apply(ItemStack stack) {
-			EntityAttributeModifier mod = uuid==null ? new EntityAttributeModifier(name, value, operation) : new EntityAttributeModifier(uuid, name, value, operation);
+			EntityAttributeModifier mod = new EntityAttributeModifier(identifier, value, operation);
 			// TODO 1.20.5
 			stack.apply(DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT, component -> {
 				List<AttributeModifiersComponent.Entry> modifiers = new LinkedList<>(component.modifiers());
@@ -290,22 +289,6 @@ public class ItemStackish {
 			this.value = value;
 		}
 
-		public String getName() {
-			return name;
-		}
-
-		public void setName(String name) {
-			this.name = name;
-		}
-
-		public UUID getUuid() {
-			return uuid;
-		}
-
-		public void setUuid(UUID uuid) {
-			this.uuid = uuid;
-		}
-
 		public AttributeModifierSlot getSlot() {
 			return slot;
 		}
@@ -319,11 +302,10 @@ public class ItemStackish {
 			if (this == obj) return true;
 			if (!(obj instanceof AttributeValues other)) return false;
 			return Objects.equals(attribute, other.attribute)
-					&& Objects.equals(name, other.name)
 					&& Double.doubleToLongBits(value) == Double.doubleToLongBits(other.value)
 					&& operation == other.operation
 					&& slot == other.slot
-					&& Objects.equals(uuid, other.uuid);
+					&& Objects.equals(identifier, other.identifier);
 		}
 
 		@Override
@@ -331,7 +313,7 @@ public class ItemStackish {
 			final int prime = 31;
 			int result = 1;
 			result = prime * result + ItemStackish.this.hashCode();
-			result = prime * result + Objects.hash(attribute, name, operation, slot, uuid, value);
+			result = prime * result + Objects.hash(attribute, identifier, operation, slot, value);
 			return result;
 		}
 	}

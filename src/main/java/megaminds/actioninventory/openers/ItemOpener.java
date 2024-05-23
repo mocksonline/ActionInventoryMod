@@ -15,7 +15,7 @@ import net.minecraft.util.TypedActionResult;
 
 @PolyName("Item")
 public final class ItemOpener extends BasicOpener {
-	private static final Identifier TYPE = new Identifier(ActionInventoryMod.MOD_ID, "item");
+	private static final Identifier TYPE = Identifier.method_60655(ActionInventoryMod.MOD_ID, "item");
 
 	private ItemStackish stack;
 	private Set<Identifier> tags;

@@ -87,7 +87,7 @@ public class Serializer {
 
 				.registerTypeAdapter(ClickCallback.class, delegate(BasicAction.class, ClickCallback.class::cast, BasicAction.class::cast))
 				.registerTypeAdapter(ItemStack.class, delegate(ItemStackish.class, ItemStackish::toStack, ItemStackish::new))
-				.registerTypeAdapter(Identifier.class, delegate(String.class, s->new Identifier(s.toLowerCase()), Identifier::toString))
+				.registerTypeAdapter(Identifier.class, delegate(String.class, s-> Identifier.method_60654(s.toLowerCase()), Identifier::toString))
 				.registerTypeAdapter(TriState.class, new TriStateAdapter())
 				.registerTypeAdapter(Item.class, registryDelegate(Registries.ITEM))
 				.registerTypeAdapter(EntityAttribute.class, registryDelegate(Registries.ATTRIBUTE))
@@ -102,8 +102,8 @@ public class Serializer {
 				.registerTypeAdapterFactory(new WrapperAdapterFactory(new InstancedAdapterWrapper(), new ValidatedAdapterWrapper()))
 				.registerTypeAdapterFactory(new PolyAdapterFactory())
 				.registerTypeAdapterFactory(new OptionalAdapterFactory())
-				.registerTypeAdapter(new TypeToken<RegistryEntry<PaintingVariant>>(){}.getType(), new CodecSerializer<>(PaintingVariant.field_51597))
-				.registerTypeAdapter(new TypeToken<RegistryEntry<Enchantment>>(){}.getType(), new CodecSerializer<>(Enchantment.field_51644))
+				.registerTypeAdapter(new TypeToken<RegistryEntry<PaintingVariant>>(){}.getType(), new CodecSerializer<>(PaintingVariant.ENTRY_CODEC))
+				.registerTypeAdapter(new TypeToken<RegistryEntry<Enchantment>>(){}.getType(), new CodecSerializer<>(Enchantment.ENTRY_CODEC))
 				.create();
 	}
 
