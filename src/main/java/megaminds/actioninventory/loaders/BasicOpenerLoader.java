@@ -11,12 +11,13 @@ import megaminds.actioninventory.ActionInventoryMod;
 import megaminds.actioninventory.openers.BasicOpener;
 import megaminds.actioninventory.serialization.Serializer;
 import megaminds.actioninventory.util.ValidationException;
+import net.fabricmc.fabric.api.event.registry.DynamicRegistrySetupCallback;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Identifier;
 
 public class BasicOpenerLoader implements SimpleSynchronousResourceReloadListener {
-	private static final Identifier LOADER_ID = new Identifier(ActionInventoryMod.MOD_ID, "openers");
+	private static final Identifier LOADER_ID = Identifier.method_60655(ActionInventoryMod.MOD_ID, "openers");
 
 	private final Map<Identifier, List<BasicOpener>> openers = new HashMap<>();
 

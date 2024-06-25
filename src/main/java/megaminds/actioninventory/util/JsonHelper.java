@@ -12,6 +12,7 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import net.minecraft.registry.DynamicRegistryManager;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.gson.JsonArray;
@@ -117,11 +118,11 @@ public class JsonHelper {
 	}
 
 	public static Identifier identifier(JsonElement e, Identifier def) {
-		return notNull(e) ? new Identifier(e.getAsString()) : def;
+		return notNull(e) ? Identifier.method_60654(e.getAsString()) : def;
 	}
 
 	public static Identifier identifier(JsonElement e, Supplier<Identifier> def) {
-		return notNull(e) ? new Identifier(e.getAsString()) : def.get();
+		return notNull(e) ? Identifier.method_60654(e.getAsString()) : def.get();
 	}
 
 	/**
@@ -175,7 +176,7 @@ public class JsonHelper {
 	}
 
 	public static Text text(JsonElement e, Text def) {
-		return notNull(e) ? notNull(Text.Serialization.fromJsonTree(e), def) : def;
+		return notNull(e) ? notNull(Text.Serialization.fromJsonTree(e, DynamicRegistryManager.EMPTY), def) : def;
 	}
 
 	/**
